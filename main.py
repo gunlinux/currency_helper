@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
 import logging
 import os
+import sys
 import typing
+import json
 
 from dotenv import load_dotenv
 import requests
@@ -9,7 +11,9 @@ import requests
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +73,7 @@ class CurrencyApi:
         usd_default = f"USD{default}"
 
         if usd_pair in pairs and usd_default in pairs:
-            logger.info('Calculated %s via USD', f'{pair}{default}')
+            logger.info("Calculated %s via USD", f"{pair}{default}")
             pairs[f"{pair}{default}"] = pairs[usd_default] / pairs[usd_pair]
             return
 
@@ -78,7 +82,7 @@ class CurrencyApi:
         eur_default = f"EUR{default}"
 
         if eur_pair in pairs and eur_default in pairs:
-            logger.info('Calculated %s via EUR', f'{pair}{default}')
+            logger.info("Calculated %s via EUR", f"{pair}{default}")
             pairs[f"{pair}{default}"] = pairs[eur_default] / pairs[eur_pair]
             return
 
@@ -106,7 +110,15 @@ def unpack_fallback(fallback: str) -> dict[str, float]:
     return d
 
 
+def help() -> None:
+    print(f"{sys.argv[0]} [OUTPUT_FILE.json]")
+
+
 def main() -> None:
+    if len(sys.argv) != 2:
+        help()
+        sys.exit(1)
+
     api_key = os.getenv("API_KEY")
     donations = os.getenv("DONATIONS", "BYN,EUR,KZT,RUB,UAH,USD,BRL,TRY,PLN")
     donations = donations.split(",")
@@ -119,11 +131,13 @@ def main() -> None:
     currency_api = CurrencyApi(
         api_key=api_key, pairs=donations, default="RUB", fallback=fallback
     )
-    # t = currency_api.get_currency_list()
-    t = currency_api.get_api_pairs()
-    logger.info("Final currency rates: %s", t)
+    if currencies := currency_api.get_api_pairs():
+        with open(sys.argv[1], "w") as f:
+            json.dump(currencies, f)
+        logger.info("Final currency rates: %s", currencies)
+    else:
+        logger.critical("Final currency rates: %s", currencies)
 
 
 if __name__ == "__main__":
     main()
-    USDKZT = 376
