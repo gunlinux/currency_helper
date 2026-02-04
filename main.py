@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import logging
 import os
 import typing
 
@@ -6,6 +7,10 @@ from dotenv import load_dotenv
 import requests
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -42,9 +47,9 @@ class CurrencyApi:
                 elif f"EUR{pair}" in currency_list:
                     out.append(f"EUR{pair}")
                 else:
-                    print("DAME", pair)
+                    logger.warning("Pair not available via direct or USD/EUR: %s", pair)
             else:
-                print("currency no in list", pair)
+                logger.warning("Currency not in list: %s", pair)
         return ",".join(out)
 
     def _get_api_pairs(self) -> typing.Any:
@@ -64,7 +69,7 @@ class CurrencyApi:
         usd_default = f"USD{default}"
 
         if usd_pair in pairs and usd_default in pairs:
-            print(f'got {pair}{default} via usdt')
+            logger.info('Calculated %s via USD', f'{pair}{default}')
             pairs[f"{pair}{default}"] = pairs[usd_default] / pairs[usd_pair]
             return
 
@@ -73,7 +78,7 @@ class CurrencyApi:
         eur_default = f"EUR{default}"
 
         if eur_pair in pairs and eur_default in pairs:
-            print(f'got {pair}{default} via eur')
+            logger.info('Calculated %s via EUR', f'{pair}{default}')
             pairs[f"{pair}{default}"] = pairs[eur_default] / pairs[eur_pair]
             return
 
@@ -110,13 +115,13 @@ def main() -> None:
 
     if api_key is None:
         raise ValueError()
-    print("Hello from currencies!")
+    logger.info("Hello from currencies!")
     currency_api = CurrencyApi(
         api_key=api_key, pairs=donations, default="RUB", fallback=fallback
     )
     # t = currency_api.get_currency_list()
     t = currency_api.get_api_pairs()
-    print(t)
+    logger.info("Final currency rates: %s", t)
 
 
 if __name__ == "__main__":
