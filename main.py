@@ -131,12 +131,15 @@ def main() -> None:
     currency_api = CurrencyApi(
         api_key=api_key, pairs=donations, default="RUB", fallback=fallback
     )
-    if currencies := currency_api.get_api_pairs():
-        with open(sys.argv[1], "w") as f:
-            json.dump(currencies, f)
-        logger.info("Final currency rates: %s", currencies)
-    else:
-        logger.critical("Final currency rates: %s", currencies)
+    try:
+        currencies = currency_api.get_api_pairs()
+    except Exception as e:
+        logger.critical("currency failed to get: %s", e)
+        return
+
+    logger.info("Final currency rates: %s", currencies)
+    with open(sys.argv[1], "w") as f:
+        json.dump(currencies, f)
 
 
 if __name__ == "__main__":
